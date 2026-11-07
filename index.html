@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Bill Book & Udhar Khata with Dashboard</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding-bottom: 75px; }
+
+        header { background: var(--primary); color: white; padding: 15px; text-align: center; font-size: 1.2rem; font-weight: bold; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        .container { padding: 12px; max-width: 600px; margin: 0 auto; }
+
+        /* Bottom Fixed Navigation Bar */
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); display: flex; border-top: 1px solid var(--border); z-index: 100; }
+        .nav-item { flex: 1; padding: 10px 0; text-align: center; background: none; border: none; font-size: 0.75rem; font-weight: bold; color: #64748b; cursor: pointer; }
+        .nav-item.active { color: var(--primary); border-top: 3px solid var(--primary); }
+
+        /* Card Styles */
+        .card { background: var(--surface); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--border); }
+        .card-header { font-size: 1.05rem; font-weight: bold; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Dashboard Metric Cards */
+        .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .dash-card { background: var(--surface); padding: 12px; border-radius: 10px; border-left: 4px solid var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .dash-card.red { border-color: var(--danger); }
+        .dash-card.green { border-color: var(--success); }
+        .dash-card.orange { border-color: var(--warning); }
+        .dash-title { font-size: 0.8rem; color: #64748b; font-weight: 600; }
+        .dash-value { font-size: 1.3rem; font-weight: bold; margin-top: 4px; }
+
+        /* Quick Actions Grid */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .action-btn { background: #eff6ff; color: var(--primary); padding: 12px; border-radius: 8px; border: 1px solid #bfdbfe; font-weight: bold; font-size: 0.9rem; text-align: center; cursor: pointer; }
+        .action-btn.green { background: #f0fdf4; color: var(--success); border-color: #bbf7d0; }
+
+        /* Form Controls */
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: #475569; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; outline: none; }
+        
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; color: white; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); }
+        .btn-sm { padding: 6px 12px; font-size: 0.85rem; width: auto; }
+
+        /* Dynamic Item Table */
+        .item-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .item-row input:nth-child(1) { flex: 2; }
+        .item-row input:nth-child(2) { flex: 1; }
+        .item-row input:nth-child(3) { flex: 1; }
+
+        /* Transaction List */
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .list-item:last-child { border-bottom: none; }
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+        .badge-red { background: #fee2e2; color: var(--danger); }
+        .badge-green { background: #dcfce7; color: var(--success); }
+        .badge-blue { background: #dbeafe; color: var(--primary); }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <header>📊 Smart Bill Book & Dashboard</header>
+
+    <div class="container">
+        
+        <!-- SECTION 1: DASHBOARD -->
+        <div id="sec-dashboard">
+            <div class="dash-grid">
+                <div class="dash-card red">
+                    <div class="dash-title">Kul Udhar (Pending)</div>
+                    <div class="dash-value" id="dash-udhar">₹0</div>
+                </div>
+                <div class="dash-card green">
+                    <div class="dash-title">Kul Jama (Collected)</div>
+                    <div class="dash-value" id="dash-jama">₹0</div>
+                </div>
+                <div class="dash-card orange">
+                    <div class="dash-title">Total Sales (Bills)</div>
+                    <div class="dash-value" id="dash-sales">₹0</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-title">Total Bills Saved</div>
+                    <div class="dash-value" id="dash-count">0</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">⚡ Quick Actions</div>
+                <div class="action-grid">
+                    <div class="action-btn" onclick="switchNav('invoice')">+ Naya Bill Banayein</div>
+                    <div class="action-btn green" onclick="switchNav('khata')">+ Udhar / Jama Entry</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>🕒 Recent Transactions</span>
+                    <button class="btn btn-sm btn-primary" onclick="switchNav('history')">View All</button>
+                </div>
+                <div id="dash-recent-list"></div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: UDHAR KHATA -->
+        <div id="sec-khata" class="hidden">
+            <div class="card">
+                <div class="card-header">Nayi Khata Entry</div>
+                <div class="form-group">
+                    <label>Customer Name</label>
+                    <input type="text" id="cust-name" placeholder="Customer Name">
+                </div>
+                <div class="form-group">
+                    <label>WhatsApp Number</label>
+                    <input type="tel" id="cust-phone" placeholder="10-digit mobile number">
+                </div>
+                <div class="form-group">
+                    <label>Amount (₹)</label>
+                    <input type="number" id="cust-amount" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Entry Type</label>
+                    <select id="cust-type">
+                        <option value="udhar">Udhar Diya (You Gave)</option>
+                        <option value="jama">Jama Mila (You Got)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="addKhataEntry()">Save Khata Entry</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Customer Balance List</div>
+                <div id="customer-list"></div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: INVOICE BUILDER -->
+        <div id="sec-invoice" class="hidden">
+            <div class="card">
+                <div class="card-header">Naya Bill Banayein</div>
+                <div class="form-group">
+                    <label>Customer Name</label>
+                    <input type="text" id="inv-name" placeholder="Customer Name">
+                </div>
+                <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="tel" id="inv-phone" placeholder="Mobile Number">
+                </div>
+                
+                <hr style="margin: 15px 0;">
+                <label>Items List</label>
+                <div id="items-container">
+                    <div class="item-row">
+                        <input type="text" placeholder="Item Name" class="item-name">
+                        <input type="number" placeholder="Qty" class="item-qty" oninput="calculateInvoiceTotal()">
+                        <input type="number" placeholder="Rate" class="item-rate" oninput="calculateInvoiceTotal()">
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-primary" style="margin-bottom: 15px;" onclick="addItemRow()">+ Add Item</button>
+
+                <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 15px; text-align: right;">
+                    Total: ₹<span id="inv-total">0.00</span>
+                </div>
+
+                <button class="btn btn-success" onclick="saveAndShareInvoice()">Save Bill & WhatsApp Share</button>
+            </div>
+        </div>
+
+        <!-- SECTION 4: HISTORY -->
+        <div id="sec-history" class="hidden">
+            <div class="card">
+                <div class="card-header">Complete History Log</div>
+                <div id="history-list"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <div class="nav-bar">
+        <button class="nav-item active" onclick="switchNav('dashboard')">🏠<br>Dashboard</button>
+        <button class="nav-item" onclick="switchNav('khata')">📖<br>Khata</button>
+        <button class="nav-item" onclick="switchNav('invoice')">🧾<br>Naya Bill</button>
+        <button class="nav-item" onclick="switchNav('history')">📜<br>History</button>
+    </div>
+
+    <script>
+        let db = JSON.parse(localStorage.getItem('bill_book_db')) || { khata: [], history: [] };
+
+        function saveData() {
+            localStorage.setItem('bill_book_db', JSON.stringify(db));
+            renderDashboard();
+            renderKhata();
+            renderHistory();
+        }
+
+        function switchNav(secName) {
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.container > div[id^="sec-"]').forEach(sec => sec.classList.add('hidden'));
+
+            const secEl = document.getElementById(`sec-${secName}`);
+            if(secEl) secEl.classList.remove('hidden');
+
+            const navIndex = ['dashboard', 'khata', 'invoice', 'history'].indexOf(secName);
+            if(navIndex !== -1) {
+                document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
+            }
+        }
+
+        function renderDashboard() {
+            let totalUdhar = 0;
+            let totalJama = 0;
+            let totalSales = 0;
+            let billCount = 0;
+
+            db.khata.forEach(item => {
+                if(item.type === 'udhar') totalUdhar += item.amount;
+                if(item.type === 'jama') totalJama += item.amount;
+            });
+
+            db.history.forEach(item => {
+                if(item.type === 'bill') {
+                    totalSales += item.amount;
+                    billCount++;
+                }
+            });
+
+            document.getElementById('dash-udhar').innerText = `₹${totalUdhar}`;
+            document.getElementById('dash-jama').innerText = `₹${totalJama}`;
+            document.getElementById('dash-sales').innerText = `₹${totalSales.toFixed(2)}`;
+            document.getElementById('dash-count').innerText = billCount;
+
+            const recentList = document.getElementById('dash-recent-list');
+            recentList.innerHTML = '';
+            
+            const recentEntries = [...db.history].reverse().slice(0, 4);
+            if(recentEntries.length === 0) {
+                recentList.innerHTML = '<small style="color:#64748b;">Koi recent transaction nahi hai.</small>';
+            } else {
+                recentEntries.forEach(item => {
+                    const badgeClass = item.type === 'udhar' ? 'badge-red' : (item.type === 'jama' ? 'badge-green' : 'badge-blue');
+                    recentList.innerHTML += `
+                        <div class="list-item">
+                            <div>
+                                <strong>${item.name}</strong> <small>(${item.date})</small>
+                            </div>
+                            <div>
+                                <span class="badge ${badgeClass}">₹${item.amount}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function addKhataEntry() {
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const amount = parseFloat(document.getElementById('cust-amount').value);
+            const type = document.getElementById('cust-type').value;
+
+            if(!name || isNaN(amount)) {
+                alert('Kripya Name aur Sahi Amount bharein!');
+                return;
+            }
+
+            const entry = { id: Date.now(), name, phone, amount, type, date: new Date().toLocaleDateString('en-IN') };
+            db.khata.push(entry);
+            db.history.push({ ...entry, title: type === 'udhar' ? 'Udhar Diya' : 'Jama Mila' });
+
+            saveData();
+            
+            document.getElementById('cust-name').value = '';
+            document.getElementById('cust-phone').value = '';
+            document.getElementById('cust-amount').value = '';
+            alert('Khata Entry Save Ho Gayi!');
+            switchNav('dashboard');
+        }
+
+        function renderKhata() {
+            const listEl = document.getElementById('customer-list');
+            listEl.innerHTML = '';
+
+            db.khata.forEach(item => {
+                const isUdhar = item.type === 'udhar';
+                const msg = encodeURIComponent(`Namaste ${item.name} ji, aapka balance: ₹${item.amount} (${isUdhar ? 'Pending Udhar' : 'Jama Received'}). Date: ${item.date}.`);
+                
+                listEl.innerHTML += `
+                    <div class="list-item">
+                        <div>
+                            <strong>${item.name}</strong> <small>(${item.date})</small><br>
+                            <small>${item.phone || 'No Phone'}</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="badge ${isUdhar ? 'badge-red' : 'badge-green'}">₹${item.amount}</span><br>
+                            ${item.phone ? `<a href="https://wa.me/91${item.phone}?text=${msg}" target="_blank" style="font-size:0.75rem; color:var(--primary); text-decoration:none;">WhatsApp Reminder</a>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function addItemRow() {
+            const container = document.getElementById('items-container');
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Item Name" class="item-name">
+                <input type="number" placeholder="Qty" class="item-qty" oninput="calculateInvoiceTotal()">
+                <input type="number" placeholder="Rate" class="item-rate" oninput="calculateInvoiceTotal()">
+            `;
+            container.appendChild(row);
+        }
+
+        function calculateInvoiceTotal() {
+            let total = 0;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+                total += qty * rate;
+            });
+            document.getElementById('inv-total').innerText = total.toFixed(2);
+        }
+
+        function saveAndShareInvoice() {
+            const name = document.getElementById('inv-name').value.trim();
+            const phone = document.getElementById('inv-phone').value.trim();
+            const total = document.getElementById('inv-total').innerText;
+
+            if(!name || total == "0.00") {
+                alert('Kripya Name aur Items ki detail sahi se bharein!');
+                return;
+            }
+
+            let billDetails = `*BILL / INVOICE*\nCustomer: ${name}\nDate: ${new Date().toLocaleDateString('en-IN')}\n---------------\n`;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const item = row.querySelector('.item-name').value;
+                const qty = row.querySelector('.item-qty').value;
+                const rate = row.querySelector('.item-rate').value;
+                if(item && qty && rate) billDetails += `${item} x ${qty} @ ₹${rate} = ₹${qty * rate}\n`;
+            });
+            billDetails += `---------------\n*Total Amount: ₹${total}*\nThank you!`;
+
+            db.history.push({ id: Date.now(), name, phone, amount: parseFloat(total), type: 'bill', date: new Date().toLocaleDateString('en-IN') });
+            saveData();
+
+            if(phone) {
+                window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(billDetails)}`, '_blank');
+            } else {
+                alert('Bill Save ho gaya hai!');
+            }
+            switchNav('dashboard');
+        }
+
+        function renderHistory() {
+            const listEl = document.getElementById('history-list');
+            listEl.innerHTML = '';
+            
+            [...db.history].reverse().forEach(item => {
+                const badgeClass = item.type === 'udhar' ? 'badge-red' : (item.type === 'jama' ? 'badge-green' : 'badge-blue');
+                listEl.innerHTML += `
+                    <div class="list-item">
+                        <div>
+                            <strong>${item.name}</strong> <small>(${item.type.toUpperCase()})</small><br>
+                            <small>${item.date}</small>
+                        </div>
+                        <div>
+                            <span class="badge ${badgeClass}">₹${item.amount}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Initial Load
+        renderDashboard();
+        renderKhata();
+        renderHistory();
+    </script>
+</body>
+</html>
